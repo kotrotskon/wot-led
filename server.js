@@ -1,6 +1,11 @@
 var express = require('express');
 var app = express();
+var onoff = require('onoff');
 var bodyParser = require('body-parser');
+
+
+var Gpio = onoff.Gpio;
+var led = new Gpio(4, 'out');
 
 // Create application/x-www-form-urlencoded parser
 var urlencodedParser = bodyParser.urlencoded({ extended: false });
@@ -17,6 +22,12 @@ app.post('/process_post', urlencodedParser, function (req, res) {
         first_name: req.body.first_name,
         last_name: req.body.last_name
     };
+
+    var value = (led.readSync() + 1) % 2; //#D
+    led.write(value, function() { //#E
+        console.log("Changed LED state to: " + value);
+    });
+
     console.log(response);
     res.end(JSON.stringify(response));
 });
@@ -27,4 +38,12 @@ var server = app.listen(8081, function () {
 
     console.log("Example app listening at http://%s:%s", host, port)
 
+});
+
+process.on('SIGINT', function () { //#F
+    clearInterval(interval);
+    led.writeSync(0); //#G
+    led.unexport();
+    console.log('Bye, bye!');
+    process.exit();
 });
